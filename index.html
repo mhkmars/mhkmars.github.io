@@ -93,9 +93,25 @@
     
     <div class="e-content article-entry" itemprop="articleBody">
       
-        <h1 id="建立GitHub账号"><a href="#建立GitHub账号" class="headerlink" title="建立GitHub账号"></a>建立GitHub账号</h1><p>注册GitHub</p>
+        <h1 id="1-建立GitHub账号"><a href="#1-建立GitHub账号" class="headerlink" title="1. 建立GitHub账号"></a>1. 建立GitHub账号</h1><p>注册GitHub</p>
 <p>建立一个新的仓库</p>
-<h1 id="安装Git"><a href="#安装Git" class="headerlink" title="安装Git"></a>安装Git</h1><h1 id="安装Node-js"><a href="#安装Node-js" class="headerlink" title="安装Node.js"></a>安装Node.js</h1><h1 id="安装Hexo"><a href="#安装Hexo" class="headerlink" title="安装Hexo"></a>安装Hexo</h1>
+<h1 id="2-环境搭建"><a href="#2-环境搭建" class="headerlink" title="2. 环境搭建"></a>2. 环境搭建</h1><ul>
+<li>Git：[<a target="_blank" rel="noopener" href="https://git-scm.com/downloads]">https://git-scm.com/downloads]</a></li>
+</ul>
+<p>一路下一步，完成后打开cmd窗口，<code>git --version</code>出现版本号即可</p>
+<ul>
+<li>Node.js：[<a target="_blank" rel="noopener" href="https://nodejs.org/zh-cn]">https://nodejs.org/zh-cn]</a></li>
+</ul>
+<p>一路下一步，完成后打开cmd窗口，<code>node -v</code> 出现版本号即可</p>
+<h1 id="3-链接GitHub"><a href="#3-链接GitHub" class="headerlink" title="3. 链接GitHub"></a>3. 链接GitHub</h1><p>右键-&gt;git bash here，设置用户名和邮箱</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">git config --global user.name &quot;github 用户名&quot;</span><br><span class="line">git config --global user.email &quot;github 邮箱&quot;</span><br></pre></td></tr></table></figure>
+
+<p>创建SSH秘钥，一路回车</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa -C &quot;github 邮箱&quot;</span><br></pre></td></tr></table></figure>
+
+<p>添加公钥到github</p>
+<p><a target="_blank" rel="noopener" href="https://www.malaoshi.top/show_1IX1Y40dStfD.html">ssh是什么</a></p>
+
       
     </div>
     <footer class="article-footer">
