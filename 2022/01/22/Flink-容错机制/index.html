@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Flink 容错机制 | mars recording</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="Flink容错机制一、一致性检查点checkpoints  有状态流应用的一致检查点，其实就是所有任务的状态，在某个时间点的一份快照； 这个时间点，是所有任务恰好处理完同一个相同的输入数据的时候；  对上图的解释： 来的数据都是自然数，1，2，3，4，5。。。。 两个流分别对偶数和奇数进行求和，6&#x3D;2+4,9&#x3D;1+3+5。这两个算子都对5进行处理完之后的状态就是 123source &#x3D; 5 并且保">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Flink 容错机制">
+<meta property="og:url" content="http://example.com/2022/01/22/Flink-%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="mars recording">
+<meta property="og:description" content="Flink容错机制一、一致性检查点checkpoints  有状态流应用的一致检查点，其实就是所有任务的状态，在某个时间点的一份快照； 这个时间点，是所有任务恰好处理完同一个相同的输入数据的时候；  对上图的解释： 来的数据都是自然数，1，2，3，4，5。。。。 两个流分别对偶数和奇数进行求和，6&#x3D;2+4,9&#x3D;1+3+5。这两个算子都对5进行处理完之后的状态就是 123source &#x3D; 5 并且保">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642838125195-c7f9a7a3-d143-4ef5-b550-5f080bc1741a.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839354579-3b56be71-e4e9-41f0-9d11-cf076a2f5138.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839415293-0058419c-6e99-4e48-88e3-1cd24eaff664.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839477638-dc8a3152-910e-4baf-ab29-f56bade40be7.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839575609-3f7c2224-a795-4539-8a30-db087cf83984.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846295638-d593dff4-acfd-4203-8dc2-65446bc86e08.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846362107-9afcc181-677d-45a0-b0d1-cc3afa983480.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846483126-4900207a-3978-40de-8c0c-c9c8cd1f0bf2.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642847076669-e3cdd73e-505f-41c1-bcd9-b3721c3fba89.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848569371-a8e5a24d-493c-43b4-bb23-fba7e9a218f0.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848904705-161adb54-e726-42ff-bd0a-d4ecef5e44e8.png">
+<meta property="og:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848971824-f9175529-580b-466d-89a3-249c2541d1b9.png">
+<meta property="article:published_time" content="2022-01-22T12:46:00.000Z">
+<meta property="article:modified_time" content="2022-01-22T12:47:20.742Z">
+<meta property="article:author" content="mars">
+<meta property="article:tag" content="Flink">
+<meta property="article:tag" content="Checkpoints">
+<meta property="article:tag" content="savepoints">
+<meta property="article:tag" content="barrier">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642838125195-c7f9a7a3-d143-4ef5-b550-5f080bc1741a.png">
+  
+    <link rel="alternate" href="/atom.xml" title="mars recording" type="application/atom+xml">
+  
+  
+    <link rel="shortcut icon" href="/favicon.png">
+  
+  
+    
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/typeface-source-code-pro@0.0.71/index.min.css">
+
+  
+  
+<link rel="stylesheet" href="/css/style.css">
+
+  
+    
+<link rel="stylesheet" href="/fancybox/jquery.fancybox.min.css">
+
+  
+<meta name="generator" content="Hexo 6.0.0"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">mars recording</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://example.com"></form>
+      </div>
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-Flink-容错机制" class="h-entry article article-type-post" itemprop="blogPost" itemscope itemtype="https://schema.org/BlogPosting">
+  <div class="article-meta">
+    <a href="/2022/01/22/Flink-%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6/" class="article-date">
+  <time class="dt-published" datetime="2022-01-22T12:46:00.000Z" itemprop="datePublished">2022-01-22</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="p-name article-title" itemprop="headline name">
+      Flink 容错机制
+    </h1>
+  
+
+      </header>
+    
+    <div class="e-content article-entry" itemprop="articleBody">
+      
+        <h1 id="Flink容错机制"><a href="#Flink容错机制" class="headerlink" title="Flink容错机制"></a>Flink容错机制</h1><h2 id="一、一致性检查点checkpoints"><a href="#一、一致性检查点checkpoints" class="headerlink" title="一、一致性检查点checkpoints"></a>一、一致性检查点checkpoints</h2><p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642838125195-c7f9a7a3-d143-4ef5-b550-5f080bc1741a.png" alt="img"></p>
+<ul>
+<li>有状态流应用的一致检查点，其实就是所有任务的状态，在某个时间点的一份快照；</li>
+<li>这个时间点，是所有任务<strong>恰好处理完同一个相同的输入数据</strong>的时候；</li>
+</ul>
+<p>对上图的解释：</p>
+<p>来的数据都是自然数，1，2，3，4，5。。。。</p>
+<p>两个流分别对偶数和奇数进行求和，6=2+4,9=1+3+5。这两个算子都对5进行处理完之后的状态就是</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">source = <span class="number">5</span> 并且保存<span class="number">5</span>所在的数据源偏移量</span><br><span class="line">sum_odd = <span class="number">1</span> + <span class="number">3</span> + <span class="number">5</span> =<span class="number">9</span>; 保存<span class="number">9</span>这个状态</span><br><span class="line">sum_even = <span class="number">2</span> + <span class="number">4</span>; 保存<span class="number">6</span>这个状态</span><br></pre></td></tr></table></figure>
+
+<h2 id="二、从检查点恢复状态"><a href="#二、从检查点恢复状态" class="headerlink" title="二、从检查点恢复状态"></a>二、从检查点恢复状态</h2><p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839354579-3b56be71-e4e9-41f0-9d11-cf076a2f5138.png" alt="img"></p>
+<p>当数据7到来时，服务挂掉了。需要恢复检查点</p>
+<p><strong>第一步：重启应用</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839415293-0058419c-6e99-4e48-88e3-1cd24eaff664.png" alt="img"></p>
+<p>初始值都是null</p>
+<p><strong>第二步：从checkpoint读取状态并且恢复</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839477638-dc8a3152-910e-4baf-ab29-f56bade40be7.png" alt="img"></p>
+<p>从检查点重启应用之后，内部状态与检查点完成时的状态完全一致；</p>
+<p>此图示意的的检查点还包括source任务，因此source任务按照之前保存的偏移量重新读取数据</p>
+<p><strong>第三步：开始消费并处理检查点到发生故障之间的所有数据</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642839575609-3f7c2224-a795-4539-8a30-db087cf83984.png" alt="img"></p>
+<p>这种检查点的保存和恢复机制可以为应用程序提供exactly once的一致性。</p>
+<h2 id="三、检查点的实现算法"><a href="#三、检查点的实现算法" class="headerlink" title="三、检查点的实现算法"></a>三、检查点的实现算法</h2><p>检查点分界线：checkpoint barrier</p>
+<ul>
+<li>barrier是一种特殊的数据，用来把一条留上的数据按照不同的检查点分开</li>
+<li>分界线到来之前的数据导致的状态更改，都会被包含在当前分界线所属的检查点中；而基于分界线之后的数据导致的更改，就会被包含在该barrier之后的检查点中。</li>
+</ul>
+<p><strong>算法实现步骤：</strong></p>
+<ol>
+<li>现在有两个输入流的应用程序，用两个并行的source来读取数据</li>
+</ol>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846295638-d593dff4-acfd-4203-8dc2-65446bc86e08.png" alt="img"></p>
+<ol>
+<li>jobmanager通知各个task manager要做检查点，当前检查点的编号id为2；将这个检查点barrier插入到数据流中，并且启动检查点；</li>
+</ol>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846362107-9afcc181-677d-45a0-b0d1-cc3afa983480.png" alt="img"></p>
+<ol>
+<li>当id为2的barrier插入到source中后，source将黄3和蓝4进行保存，并且通知jobmanager source的快照完毕；随后两个source将两个barrier分别向下游进行广播；</li>
+</ol>
+<ul>
+<li><p>此时可以看到source1-》sum_odd时已经有一个蓝3发送过去了，因此sum_odd变成蓝8，蓝8也会继续向sink2进行传递；</p>
+</li>
+<li><p>source1-》sum_even传输途中的蓝2也已经被sum_even接收，更新结果为4，产生一个蓝4，向sink1传递；</p>
+</li>
+<li><p>source2-&gt;sum_even传输途中还有黄4；</p>
+</li>
+</ul>
+<p><strong>sum_even 和sum_odd保存状态的前提是收到上游传递过来的</strong><em><strong>所有barrier之后</strong></em><strong>才会执行状态保存</strong></p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642846483126-4900207a-3978-40de-8c0c-c9c8cd1f0bf2.png" alt="img"></p>
+<ol>
+<li>分界线对齐：barrier向下游传递，sum任务会等待所有的输入分区的barrier都到达；</li>
+</ol>
+<p>对于barrier已经到达的分区，继续到达的数据会被缓存，而不是直接参与运算；</p>
+<p>对于barrier尚未到达的分区，数据会被正常处理；</p>
+<ul>
+<li>source1-&gt;sum_even的蓝2barrier已经到达，但是黄2barrier还未到达，此时蓝4会被缓存而不是被计算</li>
+</ul>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642847076669-e3cdd73e-505f-41c1-bcd9-b3721c3fba89.png" alt="img"></p>
+<ol>
+<li>当收到所有分区的barrier时，任务就将其状态保存到状态后端检查点，随后将barrier继续向下游分发</li>
+</ol>
+<ul>
+<li>此时保存的sum_even状态为蓝2+黄2+黄4=8，sum_odd状态为蓝1+蓝3+黄1+黄3=8</li>
+</ul>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848569371-a8e5a24d-493c-43b4-bb23-fba7e9a218f0.png" alt="img"></p>
+<ol>
+<li>向下游转发barrier后，任务继续正常处理数据；</li>
+</ol>
+<p>此时已经保存一个左上角的checkpoint</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848904705-161adb54-e726-42ff-bd0a-d4ecef5e44e8.png" alt="img"></p>
+<ol>
+<li>Sink任务向jobmanager确认状态保存到checkpoint完毕</li>
+</ol>
+<p>当所有任务都确认已经成功将状态保存到checkpoint时，检查点就真正完成了。</p>
+<p><img src="https://cdn.nlark.com/yuque/0/2022/png/23002515/1642848971824-f9175529-580b-466d-89a3-249c2541d1b9.png" alt="img"></p>
+<h1 id="四、保存点savepoints"><a href="#四、保存点savepoints" class="headerlink" title="四、保存点savepoints"></a>四、保存点savepoints</h1><ul>
+<li><p>Flink提供了可以自定义的镜像保存功能，就是保存点（savepoints）</p>
+</li>
+<li><p>checkpoints是自动存盘，savepoints是手动存盘；</p>
+</li>
+<li><p>原则上，创建savepoints和checkpoints的算法完全相同，因此savepoints可以认为是具有一些额外元数据的checkpoints</p>
+</li>
+<li><p>savepoints是一个强大的功能。除了故障恢复外，保存点还可以用于：有计划的备份，更新应用程序，版本迁移，暂停和重启应用等。</p>
+</li>
+</ul>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://example.com/2022/01/22/Flink-%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6/" data-id="ckyptu69r0000xgvt4f0d92pp" data-title="Flink 容错机制" class="article-share-link">Share</a>
+      
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Checkpoints/" rel="tag">Checkpoints</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Flink/" rel="tag">Flink</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/barrier/" rel="tag">barrier</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/savepoints/" rel="tag">savepoints</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2022/01/22/Flink-sideoutput%E6%A1%88%E4%BE%8B-%E5%B0%86%E4%BC%A0%E6%84%9F%E5%99%A8%E9%AB%98%E4%BD%8E%E6%B8%A9%E5%88%86%E5%BC%80/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Flink sideoutput案例-将传感器高低温分开</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Checkpoints/" rel="tag">Checkpoints</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Flink/" rel="tag">Flink</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Generics/" rel="tag">Generics</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Git/" rel="tag">Git</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/SideOupt/" rel="tag">SideOupt</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/TBD/" rel="tag">TBD</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Website/" rel="tag">Website</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/barrier/" rel="tag">barrier</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/savepoints/" rel="tag">savepoints</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/%E6%B3%9B%E5%9E%8B%E6%93%A6%E9%99%A4/" rel="tag">泛型擦除</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Checkpoints/" style="font-size: 10px;">Checkpoints</a> <a href="/tags/Flink/" style="font-size: 20px;">Flink</a> <a href="/tags/Generics/" style="font-size: 10px;">Generics</a> <a href="/tags/Git/" style="font-size: 10px;">Git</a> <a href="/tags/SideOupt/" style="font-size: 10px;">SideOupt</a> <a href="/tags/TBD/" style="font-size: 10px;">TBD</a> <a href="/tags/Website/" style="font-size: 10px;">Website</a> <a href="/tags/barrier/" style="font-size: 10px;">barrier</a> <a href="/tags/savepoints/" style="font-size: 10px;">savepoints</a> <a href="/tags/%E6%B3%9B%E5%9E%8B%E6%93%A6%E9%99%A4/" style="font-size: 10px;">泛型擦除</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2022/01/">January 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2022/01/22/Flink-%E5%AE%B9%E9%94%99%E6%9C%BA%E5%88%B6/">Flink 容错机制</a>
+          </li>
+        
+          <li>
+            <a href="/2022/01/22/Flink-sideoutput%E6%A1%88%E4%BE%8B-%E5%B0%86%E4%BC%A0%E6%84%9F%E5%99%A8%E9%AB%98%E4%BD%8E%E6%B8%A9%E5%88%86%E5%BC%80/">Flink sideoutput案例-将传感器高低温分开</a>
+          </li>
+        
+          <li>
+            <a href="/2022/01/21/2022-1-21-%E5%88%86%E5%B8%83%E5%BC%8F%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">2022-1-21 分布式学习笔记</a>
+          </li>
+        
+          <li>
+            <a href="/2022/01/20/%E4%BD%BF%E7%94%A8GitHub%E5%BB%BA%E7%AB%8B%E4%B8%AA%E4%BA%BA%E7%BD%91%E7%AB%99/">使用GitHub建立个人网站</a>
+          </li>
+        
+          <li>
+            <a href="/2022/01/20/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      
+      &copy; 2022 mars<br>
+      Powered by <a href="https://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="/js/jquery-3.4.1.min.js"></script>
+
+
+
+  
+<script src="/fancybox/jquery.fancybox.min.js"></script>
+
+
+
+
+<script src="/js/script.js"></script>
+
+
+
+
+
+  </div>
+</body>
+</html>
