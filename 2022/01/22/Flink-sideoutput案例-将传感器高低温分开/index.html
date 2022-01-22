@@ -14,7 +14,7 @@
 <meta property="og:description" content="1 案例背景根据各个传感器传递过来的信息，将低于30度的传感器分到另外一条流中 2 传感器数据1234567sensor_1,1547718199,35.8sensor_6,1547718201,15.4sensor_7,1547718202,6.7sensor_10,1547718205,38.1sensor_1,1547718207,26.3sensor_1,1547718209,22.8se">
 <meta property="og:locale" content="en_US">
 <meta property="article:published_time" content="2022-01-22T07:03:53.000Z">
-<meta property="article:modified_time" content="2022-01-22T07:13:15.842Z">
+<meta property="article:modified_time" content="2022-01-22T07:43:36.365Z">
 <meta property="article:author" content="mars">
 <meta property="article:tag" content="Flink">
 <meta property="article:tag" content="SideOupt">
@@ -108,7 +108,7 @@
 <figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">OutputTag&lt;SensorReading&gt; lowtemp = <span class="keyword">new</span> OutputTag&lt;SensorReading&gt;(<span class="string">&quot;lowtemp&quot;</span>)&#123;&#125;;</span><br></pre></td></tr></table></figure>
 
 <p>如果最后不写那个<code>&#123;&#125;</code>,程序会报错；</p>
-<p>报错的原因就是泛型擦除。以下是对泛型擦除的学习</p>
+<p>报错的原因就是泛型擦除。以下是对泛型擦除的学习，之后完善。</p>
 <p>参考文章</p>
 <blockquote>
 <p><a target="_blank" rel="noopener" href="https://blog.csdn.net/briblue/article/details/76736356">Java 泛型，你了解类型擦除吗？_frank 的专栏-CSDN博客_java泛型擦除</a></p>
